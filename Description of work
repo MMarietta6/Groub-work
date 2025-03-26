@@ -1,0 +1,9 @@
+Koostasime koodi, mis küsis kasutajalt txt faili, luges selle sisse, tekitas kaks txt faili - sagedustabel nimede jaoks ja sagedustabel araabianumbrite jaoks. Kasutasime dünaamilise mälu allokatsiooni mudeleid.
+Tegime koodi, mis vastas Task 1 kirjeldusele. See töötas. Edasi lisasime Task2 ja Task 3 ülesande sisu koodile. 
+Task 1 puhul on kasutusel stack, Task 2 puhul tree ja Task 3 puhul list. Kood lõi numbrite ja nimede failid, kuid need ei olnud veel õiges järjestuses
+Lisasime tingimuse, et nimi peab algama suure tähega ja enne seda ei tohi olla tühik+punk/hüüumärk/küsimärk kombinatsiooni. Numbrite puhul lisasime ascending tingimuse.
+Nimede faili jäid siiski mõned sõnad, mis ei ole nimed. Võimalik, et mõned nimed jäid välja - mis olid lause alguses)
+Kõik rühma liikmed (Marietta, Emma ja Karl) panustasid ning igaühelt tuli asjalikke mõtteid ülesande lahendamiseks.
+AI assisteeris koodi struktuuriga, debuggimisega ja nimede identifitseerimise loogika genereerimisega.
+Sirkas andis ka nõu memory allocation modelite valimisel.
+
