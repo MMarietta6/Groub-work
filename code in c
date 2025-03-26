@@ -1,0 +1,336 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <ctype.h>
+#include <stdbool.h>
+
+// --- Data Structures ---
+typedef struct Node {
+    char *item;
+    int count;
+    struct Node *next;
+} Node;
+
+typedef struct TreeNode {
+    char *item;
+    int count;
+    struct TreeNode *left;
+    struct TreeNode *right;
+} TreeNode;
+
+// --- Function Prototypes ---
+// Task 1 (Stack for Filename)
+char* get_filename_stack();
+long get_file_size(char* filename);
+
+// Task 2 (List for Names - Alphabetical)
+Node* create_node(char* item);
+Node* insert_sorted_list_alpha(Node* head, char* item);
+void free_list(Node* head);
+void write_frequency_table_list(char* filename, Node* head);
+
+// Task 3 (Tree for Numbers - Ascending)
+TreeNode* create_tree_node(char* item);
+TreeNode* insert_bst_asc(TreeNode* root, char* item);
+void free_tree(TreeNode* root);
+void write_frequency_table_tree_asc(char* filename, TreeNode* root);
+
+// Processing
+void process_text(char* filename, Node** name_head, TreeNode** name_root, Node** number_head, TreeNode** number_root);
+int is_valid_name(const char *str, const char *prev_char);
+int is_number(const char *str);
+int compare_strings(const char *a, const char *b);
+int compare_numbers_asc(const char *a, const char *b);
+
+// --- Main Function ---
+int main() {
+    printf("RYHMATÖÖ - Text Processing\n");
+    printf("Group size min2 max4 members (one member can be AI).\n");
+    printf("This program performs dynamic memory allocation using stack, list, and tree models.\n");
+    printf("It will process a text file and create two frequency tables.\n\n");
+
+    char* filename = get_filename_stack();
+    if (!filename) {
+        fprintf(stderr, "Exiting due to file not found after 3 attempts.\n");
+        return 1;
+    }
+
+    long file_size = get_file_size(filename);
+    if (file_size == -1) {
+        fprintf(stderr, "Could not get file size for '%s'. Exiting.\n", filename);
+        free(filename);
+        return 1;
+    }
+    printf("File size of '%s': %ld bytes\n", filename, file_size);
+
+    // Task 2 & 3: Process text and create frequency tables
+    Node* name_list_head = NULL;
+    TreeNode* name_tree_root = NULL;
+    Node* number_list_head = NULL;
+    TreeNode* number_tree_root = NULL;
+
+    process_text(filename, &name_list_head, &name_tree_root, &number_list_head, &number_tree_root);
+
+    write_frequency_table_list("names_frequency_list.txt", name_list_head);
+    write_frequency_table_tree_asc("numbers_frequency_tree.txt", number_tree_root);
+
+
+    // Free allocated memory
+    free_list(name_list_head);
+    free_tree(name_tree_root);
+    free_list(number_list_head);
+    free_tree(number_tree_root);
+    free(filename);
+
+    return 0;
+}
+
+// --- Task 1 Functions (Stack Allocation for Filename) ---
+char* get_filename_stack() {
+    char filename[256];
+    int attempts = 0;
+    while (attempts < 3) {
+        printf("Enter filename: ");
+        if (scanf("%255s", filename) == 1) {
+            FILE* file = fopen(filename, "r");
+            if (file) {
+                fclose(file);
+                char* allocated_filename = strdup(filename);
+                if (!allocated_filename) {
+                    perror("Memory allocation failed for filename copy");
+                    exit(EXIT_FAILURE);
+                }
+                return allocated_filename;
+            } else {
+                attempts++;
+                fprintf(stderr, "File does not exist, try again. You can do it %d more times.\n", 3 - attempts);
+            }
+        } else {
+            fprintf(stderr, "Invalid input.\n");
+            while (getchar() != '\n');
+            attempts++;
+            fprintf(stderr, "Try again. You can do it %d more times.\n", 3 - attempts);
+        }
+    }
+    return NULL;
+}
+
+long get_file_size(char* filename) {
+    struct stat st;
+    if (stat(filename, &st) == 0) {
+        return st.st_size;
+    } else {
+        perror("Error getting file size");
+        return -1;
+    }
+}
+
+// --- Task 2 Functions (List for Names - Alphabetical) ---
+Node* create_node(char* item) {
+    Node* newNode = (Node*)malloc(sizeof(Node));
+    if (!newNode) {
+        perror("Memory allocation failed for list node");
+        exit(EXIT_FAILURE);
+    }
+    newNode->item = strdup(item);
+    if (!newNode->item) {
+        perror("Memory allocation failed for list node item");
+        free(newNode);
+        exit(EXIT_FAILURE);
+    }
+    newNode->count = 1;
+    newNode->next = NULL;
+    return newNode;
+}
+
+Node* insert_sorted_list_alpha(Node* head, char* item) {
+    if (head == NULL) {
+        return create_node(item);
+    }
+
+    Node* current = head;
+    Node* prev = NULL;
+    Node* newNode = create_node(item);
+
+    while (current != NULL && strcmp(item, current->item) > 0) {
+        prev = current;
+        current = current->next;
+    }
+
+    if (current != NULL && strcmp(item, current->item) == 0) {
+        current->count++;
+        free(newNode->item);
+        free(newNode);
+        return head;
+    }
+
+    if (prev == NULL) { // Insert at the beginning
+        newNode->next = head;
+        return newNode;
+    } else { // Insert in the middle or at the end
+        prev->next = newNode;
+        newNode->next = current;
+        return head;
+    }
+}
+
+void free_list(Node* head) {
+    Node* current = head;
+    while (current != NULL) {
+        Node* next = current->next;
+        free(current->item);
+        free(current);
+        current = next;
+    }
+}
+
+void write_frequency_table_list(char* filename, Node* head) {
+    FILE* file = fopen(filename, "w");
+    if (!file) {
+        perror("Error opening output file");
+        return;
+    }
+    Node* current = head;
+    while (current != NULL) {
+        fprintf(file, "%s: %d\n", current->item, current->count);
+        current = current->next;
+    }
+    fclose(file);
+}
+
+// --- Task 3 Functions (Tree for Numbers - Ascending) ---
+TreeNode* create_tree_node(char* item) {
+    TreeNode* newNode = (TreeNode*)malloc(sizeof(TreeNode));
+    if (!newNode) {
+        perror("Memory allocation failed for tree node");
+        exit(EXIT_FAILURE);
+    }
+    newNode->item = strdup(item);
+    if (!newNode->item) {
+        perror("Memory allocation failed for tree node item");
+        free(newNode);
+        exit(EXIT_FAILURE);
+    }
+    newNode->count = 1;
+    newNode->left = newNode->right = NULL;
+    return newNode;
+}
+
+TreeNode* insert_bst_asc(TreeNode* root, char* item) {
+    if (root == NULL) {
+        return create_tree_node(item);
+    }
+
+    int cmp = compare_numbers_asc(item, root->item);
+    if (cmp < 0) {
+        root->left = insert_bst_asc(root->left, item);
+    } else if (cmp > 0) {
+        root->right = insert_bst_asc(root->right, item);
+    } else {
+        root->count++;
+    }
+    return root;
+}
+
+void free_tree(TreeNode* root) {
+    if (root != NULL) {
+        free_tree(root->left);
+        free_tree(root->right);
+        free(root->item);
+        free(root);
+    }
+}
+
+void write_frequency_table_tree_asc(char* filename, TreeNode* root) {
+    FILE* file = fopen(filename, "w");
+    if (!file) {
+        perror("Error opening output file");
+        return;
+    }
+    void print_tree_to_file(TreeNode* node) {
+        if (node != NULL) {
+            print_tree_to_file(node->left);
+            fprintf(file, "%s: %d\n", node->item, node->count);
+            print_tree_to_file(node->right);
+        }
+    }
+    print_tree_to_file(root);
+    fclose(file);
+}
+
+// --- Processing Functions ---
+void process_text(char* filename, Node** name_head, TreeNode** name_root, Node** number_head, TreeNode** number_root) {
+    FILE* file = fopen(filename, "r");
+    if (!file) {
+        perror("Error opening input file for processing");
+        return;
+    }
+
+    char buffer[1024];
+    *name_head = NULL;
+    *name_root = NULL;
+    *number_head = NULL;
+    *number_root = NULL;
+
+    while (fgets(buffer, sizeof(buffer), file)) {
+        char* token = strtok(buffer, " \t\n\r.,!?()");
+        char* prev_char = NULL;
+        while (token) {
+            char* current_ptr = buffer;
+            while (*current_ptr != '\0' && current_ptr < token) {
+                prev_char = current_ptr;
+                current_ptr++;
+            }
+
+            if (is_valid_name(token, prev_char)) {
+                *name_head = insert_sorted_list_alpha(*name_head, token);
+            } else if (is_number(token)) {
+                *number_root = insert_bst_asc(*number_root, token);
+            }
+            token = strtok(NULL, " \t\n\r.,!?()");
+        }
+    }
+    fclose(file);
+}
+
+int compare_strings(const char *a, const char *b) {
+    return strcmp(a, b);
+}
+
+int is_valid_name(const char *str, const char *prev_char) {
+    if (str == NULL || str[0] == '\0') {
+        return 0;
+    }
+    if (!isalpha(str[0]) || !isupper(str[0])) {
+        return 0;
+    }
+    // Check for space, period, or quotation mark, exclamation mark, question mark before the capital letter
+    if (prev_char != NULL && (*prev_char == ' ' || *prev_char == '.' || *prev_char == '"' || *prev_char == '\'' || *prev_char == '!' || *prev_char == '?')) {
+        return 1;
+    }
+    if (prev_char == NULL || isspace(*prev_char) || *prev_char == '\n' || *prev_char == '\r') {
+        return 1;
+    }
+    return 0;
+}
+
+int is_number(const char *str) {
+    if (str == NULL || str[0] == '\0') {
+        return 0;
+    }
+    for (int i = 0; str[i] != '\0'; i++) {
+        if (!isdigit(str[i])) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+int compare_numbers_asc(const char *a, const char *b) {
+    int num_a = atoi(a);
+    int num_b = atoi(b);
+    if (num_a < num_b) return -1;
+    if (num_a > num_b) return 1;
+    return 0;
+}
